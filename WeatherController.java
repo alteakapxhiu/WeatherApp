@@ -6,7 +6,7 @@ import org.json.*;
 public class WeatherController {
 
 	// 🔐 Vendos këtu çelësin API nga faqja OpenWeatherMap
-	private static final String API_KEY = "FUT_KETU_API_KEY_TENDE";
+	private static final String API_KEY = "911625a1518f69fa778918f736d163f6";
 
 	// Strukturë për ruajtjen e të dhënave të motit për një qytet
 	static class WeatherData {
