@@ -773,31 +773,185 @@
         <div id="city-weather-cards" class="additional-info">
           <!-- Dynamic cards for Italy and Kosovo will be inserted here -->
         </div>
+        <script>
+          const apiKey = "911625a1518f69fa778918f736d163f6";
+
+          const cities = {
+            Tirana: { lat: 41.3275, lon: 19.8189 },
+            Fier: { lat: 40.7244, lon: 19.5562 },
+            Berat: { lat: 40.7053, lon: 19.952 },
+            Pogradec: { lat: 40.911, lon: 20.6612 },
+          };
+
+          const dayNames = [
+            "E diele",
+            "E hene",
+            "E marte",
+            "E merkure",
+            "E enjte",
+            "E premte",
+            "E shtune",
+          ];
+
+          async function fetchAndDisplayForecast(cityName) {
+            const { lat, lon } = cities[cityName];
+            const url = `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&appid=${apiKey}&units=metric&lang=sq`;
+
+            try {
+              const res = await fetch(url);
+              const data = await res.json();
+              if (data.cod !== "200") throw new Error(data.message);
+
+              // Group forecast data by date
+              const dailyTemps = {};
+              data.list.forEach((item) => {
+                const date = item.dt_txt.split(" ")[0];
+                if (!dailyTemps[date]) dailyTemps[date] = [];
+                dailyTemps[date].push(item.main.temp);
+              });
+
+              // Calculate average temp per day
+              const dailyAvgTemps = Object.entries(dailyTemps).map(
+                ([date, temps]) => {
+                  const avg = temps.reduce((a, b) => a + b, 0) / temps.length;
+                  return { date, avgTemp: avg.toFixed(1) };
+                }
+              );
+
+              // Select the forecast container
+              const forecastDiv = document.querySelector("#forecast");
+              if (!forecastDiv) return;
+
+              // Clear previous temps
+              const tempDivs = forecastDiv.querySelectorAll(".day-temp");
+              tempDivs.forEach((div) => (div.textContent = ""));
+
+              // Fill temps (up to 6 days as per your HTML)
+              for (let i = 0; i < tempDivs.length; i++) {
+                if (dailyAvgTemps[i]) {
+                  tempDivs[i].textContent = dailyAvgTemps[i].avgTemp + "°C";
+                } else {
+                  tempDivs[i].textContent = "-";
+                }
+              }
+            } catch (error) {
+              console.error("Forecast fetch error:", error);
+            }
+          }
+
+          // Show Tirana forecast on page load
+          window.addEventListener("load", () => {
+            fetchAndDisplayForecast("Tirana");
+          });
+
+          // Attach city pin clicks to update forecast
+          document.querySelectorAll(".location-pin").forEach((pin) => {
+            pin.addEventListener("click", () => {
+              const city = pin.dataset.city;
+              if (city && cities[city]) {
+                fetchAndDisplayForecast(city);
+              }
+            });
+          });
+
+          const weekdays = [
+            "E diele",
+            "E hene",
+            "E marte",
+            "E merkure",
+            "E enjte",
+            "E premte",
+            "E shtune",
+          ];
+
+          document.querySelectorAll(".location-pin").forEach((pin) => {
+            pin.addEventListener("click", () => {
+              const city = pin.getAttribute("data-city");
+              getForecast(city); // vetëm për forecast
+              updateWeatherAndLocation(city); // për të marrë current weather
+            });
+          });
+
+          async function getForecast(cityName) {
+            const city = cities[cityName];
+            const url = `https://api.openweathermap.org/data/3.0/onecall?lat=${city.lat}&lon=${city.lon}&exclude=current,minutely,hourly,alerts&appid=${apiKey}&units=metric&lang=sq`;
+
+            try {
+              const response = await fetch(url);
+              const data = await response.json();
+
+              const forecastDays = document.querySelectorAll(".forecast-day");
+              data.daily.slice(0, 6).forEach((dayData, index) => {
+                const tempDay = Math.round(dayData.temp.day);
+                const forecastEl =
+                  forecastDays[index].querySelector(".day-temp");
+                forecastEl.textContent = `${tempDay}°C`;
+              });
+            } catch (error) {
+              console.error("Gabim gjatë marrjes së të dhënave:", error);
+            }
+          }
+
+          async function updateForecast(city) {
+            const { lat, lon } = cityCoords[city];
+
+            const response = await fetch(
+              `https://api.openweathermap.org/data/3.0/onecall?lat=${lat}&lon=${lon}&exclude=minutely,hourly,alerts&units=metric&appid=${apiKey}`
+            );
+            const data = await response.json();
+
+            const forecastDays = document.querySelectorAll(".forecast-day");
+
+            data.daily.slice(0, 6).forEach((day, index) => {
+              const temp = Math.round(day.temp.day);
+              const desc = day.weather[0].description;
+
+              if (forecastDays[index]) {
+                forecastDays[index].querySelector(".day-name").textContent =
+                  weekdays[index];
+                forecastDays[index].querySelector(
+                  ".day-temp"
+                ).textContent = `${temp}°C • ${desc}`;
+              }
+            });
+          }
+
+          // Event listeners për pin-at
+          document.querySelectorAll(".location-pin").forEach((pin) => {
+            pin.addEventListener("click", () => {
+              const city = pin.getAttribute("data-city");
+              updateForecast(city);
+            });
+          });
+
+          // Default load (Tirana)
+          updateForecast("Tirana");
+        </script>
 
         <div class="forecast" id="forecast">
           <div class="forecast-day">
             <div class="day-name">E diele</div>
-            <div class="day-temp"></div>
+            <div class="day-temp">--°C</div>
           </div>
           <div class="forecast-day">
             <div class="day-name">E hene</div>
-            <div class="day-temp"></div>
+            <div class="day-temp">--°C</div>
           </div>
           <div class="forecast-day">
             <div class="day-name">E marte</div>
-            <div class="day-temp"></div>
+            <div class="day-temp">--°C</div>
           </div>
           <div class="forecast-day">
             <div class="day-name">E merkure</div>
-            <div class="day-temp"></div>
+            <div class="day-temp">--°C</div>
           </div>
           <div class="forecast-day">
             <div class="day-name">E enjte</div>
-            <div class="day-temp"></div>
+            <div class="day-temp">--°C</div>
           </div>
           <div class="forecast-day">
             <div class="day-name">E premte</div>
-            <div class="day-temp"></div>
+            <div class="day-temp">--°C</div>
           </div>
         </div>
 
@@ -833,8 +987,6 @@
     <div id="weather-detail"></div>
     <div id="feels-like-1"></div>
     <script>
-      const apiKey = "911625a1518f69fa778918f736d163f6";
-
       // Fetch weather for a city and update ALL main weather UI fields
       async function updateWeatherAndLocation(city = "Tirana") {
         try {
@@ -1272,6 +1424,60 @@
       });
     </script>
     <script>
+      const dynamicCities = ["Rome,IT", "Pristina,XK"]; // Italy (Rome), Kosovo (Pristina)
+
+      async function loadCityWeatherCards() {
+        const container = document.getElementById("city-weather-cards");
+        container.innerHTML = ""; // Clear existing
+
+        for (const city of dynamicCities) {
+          try {
+            const res = await fetch(
+              `https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${apiKey}&units=metric&lang=sq`
+            );
+            const data = await res.json();
+            if (data.cod !== 200) continue;
+
+            const emoji = data.weather[0].main.includes("Cloud")
+              ? "☁️"
+              : data.weather[0].main.includes("Rain")
+              ? "🌧️"
+              : data.weather[0].main.includes("Clear")
+              ? "☀️"
+              : "🌡️";
+
+            const card = document.createElement("div");
+            card.className = "info-card";
+            card.innerHTML = `
+          <div style="margin-bottom: 10px">${emoji}</div>
+          <div class="info-value">${Math.round(data.main.temp)}°</div>
+          <div class="info-label">${data.name}, ${data.sys.country}</div>
+          <div style="font-size: 10px; opacity: 0.5">Ndihet si ${Math.round(
+            data.main.feels_like
+          )}°</div>
+        `;
+            container.appendChild(card);
+          } catch (error) {
+            console.error("Error loading city card:", error);
+          }
+        }
+
+        // Add 'Recent Searches' block
+        const extra = document.createElement("div");
+        extra.style.marginLeft = "auto";
+        extra.innerHTML = `
+      <div style="font-size: 12px; opacity: 0.6">Kerkimet e fundit</div>
+      <div style="color: #00a8ff; font-size: 14px; margin-top: 5px">
+        Shiko te gjitha>
+      </div>
+    `;
+        container.appendChild(extra);
+      }
+
+      document.addEventListener("DOMContentLoaded", loadCityWeatherCards);
+    </script>
+
+    <script>
       async function fetchLazyWeather(city) {
         const res = await fetch(`/api/lazy?city=${city}`);
         const weather = await res.text();
@@ -1329,7 +1535,6 @@
       }
 
       // List of cities you want weather data for
-      const cities = ["Fier", "Berat", "Tirana", "Pogradec"];
 
       // Fetch weather data for a city
       async function fetchWeather(city) {
